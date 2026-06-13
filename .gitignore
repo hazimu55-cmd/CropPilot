@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.pth
+*.bin
+.env
+faiss_index/
+knowledge_base/
+.DS_Store
+.idea/

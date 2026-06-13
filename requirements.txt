@@ -1,0 +1,11 @@
+transformers==4.41.0
+torch==2.3.0
+torchvision==0.18.0
+Pillow==10.3.0
+sentence-transformers==3.0.0
+langchain==0.2.5
+langchain-community==0.2.5
+faiss-cpu==1.8.0
+pypdf==4.2.0
+gradio==4.37.2
+python-dotenv==1.0.1
