@@ -1,4 +1,4 @@
-MODEL_NAME = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
+MODEL_NAME = "wambugu71/crop_leaf_diseases_vit"
 EMBEDDING_MODEL = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 
 CHUNK_SIZE = 512
