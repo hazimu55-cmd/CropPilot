@@ -14,12 +14,13 @@ Upload a photo of a diseased plant leaf. CropPilot identifies the disease and ge
 
 | Layer | Tool |
 |-------|------|
-| Disease classifier | MobileNetV2 (HuggingFace, pretrained on PlantVillage) |
-| Embeddings | sentence-transformers/multi-qa-mpnet-base-dot-v1 |
-| Vector store | FAISS |
-| LLM | Groq API — Llama 3.3 70B |
-| Orchestration | LangChain |
-| UI | Gradio |
+| Presentation Layer | Gradio / React UI |
+| API Layer | FastAPI backend API |
+| Orchestration Layer | LangGraph supervisor agent |
+| Feature Service Layer | Disease AI, Crop Planner, AI Expert |
+| Intelligence/Model Layer | YOLOv8 detector (PlantDoc), Embedding model (MPNet), LLM (Groq Llama 3.3 70B) |
+| Reliability & Evaluation Layer | Confidence gate, Retrieval gate, Faithfulness check (RAGAS + citations) |
+| Data/Knowledge Layer | FAISS / Qdrant vector store, Table-aware chunking, Knowledge base (ICAR, NIPHM, PlantDoc) |
 
 ---
 
@@ -48,6 +49,7 @@ pip install -r requirements.txt
 Create a `.env` file in the root:
 ```
 GROQ_API_KEY=your_key_here
+API_BASE_URL=http://localhost:8000
 ```
 Get a free key at [console.groq.com](https://console.groq.com)
 
@@ -56,7 +58,12 @@ Get a free key at [console.groq.com](https://console.groq.com)
 python -m src.build_index
 ```
 
-**4. Launch**
+**4. Launch the FastAPI backend**
+```bash
+python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**5. Launch the Gradio UI** *(in a new terminal)*
 ```bash
 python app.py
 ```
@@ -89,16 +96,29 @@ The LLM never guesses — it only summarizes what the retrieved NIPHM documents 
 
 ```
 CropPilot/
-├── app.py                  ← Gradio UI entry point
+├── app.py                  ← Gradio UI entry point (Presentation Layer)
+├── api/
+│   └── main.py             ← FastAPI backend API (API Layer)
+├── orchestration/
+│   └── supervisor.py      ← LangGraph supervisor agent (Orchestration Layer)
+├── services/               ← Feature Service Layer
+│   ├── disease_ai.py       ← Leaf image analysis (YOLOv8 detector)
+│   ├── crop_planner.py     ← RAG cultivation plan generation
+│   └── ai_expert.py        ← RAG farming Q&A
+├── reliability/            ← Reliability & Evaluation Layer
+│   └── gates.py            ← Confidence, retrieval, and faithfulness gates
 ├── src/
 │   ├── config.py           ← all constants
-│   ├── classifier.py       ← MobileNetV2 inference
-│   ├── ingest.py           ← PDF loading and chunking
-│   ├── build_index.py      ← FAISS index builder (run once)
-│   ├── retriever.py        ← FAISS query interface
-│   └── generator.py        ← prompt builder + Groq LLM
+│   ├── classifier.py       ← Legacy classifier (deprecated)
+│   ├── ingest.py           ← PDF loading and table-aware chunking
+│   ├── build_index.py      ← Vector index builder (run once)
+│   ├── retriever.py        ← Vector store query interface
+│   ├── generator.py        ← Prompt builder + Groq LLM (legacy)
+│   └── vector_store.py     ← Vector store abstraction (FAISS/Qdrant)
 ├── knowledge_base/         ← NIPHM PDFs (gitignored)
-├── faiss_index/            ← generated index (gitignored)
+├── faiss_index/            ← generated FAISS index (gitignored)
+├── data/
+│   └── uploads/            ← uploaded images (gitignored)
 ├── tests/
 │   └── samples/            ← test images
 ├── .env                    ← API keys (gitignored)
@@ -115,6 +135,38 @@ python -m src.build_index
 ```
 
 No code changes needed.
+
+---
+
+## Reliability & Evaluation Features
+
+The system includes multiple reliability gates to ensure high-quality outputs:
+
+- **Confidence Gate**: Filters out low-confidence disease predictions (< 70%)
+- **Retrieval Gate**: Filters out low-quality retrieved chunks based on relevance and content length
+- **Faithfulness Check**: Verifies that LLM responses are faithful to retrieved context using RAGAS-inspired checks
+
+These gates help prevent hallucinations and ensure only reliable information is presented to users.
+
+---
+
+## Vector Store Options
+
+The system supports two vector store backends:
+
+- **FAISS** (default): Local vector store, suitable for development and small deployments
+- **Qdrant**: Production-ready vector database with better scalability
+
+Configure in `src/config.py`:
+```python
+VECTOR_STORE_TYPE = "faiss"  # or "qdrant"
+```
+
+---
+
+## Table-Aware Chunking
+
+The ingestion pipeline includes table-aware chunking to preserve table structures from PDFs. Tables are detected and kept intact as separate chunks, preventing data loss during the chunking process.
 
 ---
 
