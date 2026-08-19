@@ -32,10 +32,16 @@ def generate_treatment(
     crop: str,
     disease: str,
     confidence: float,
-    user_context: str = ""
+    user_context: str = "",
+    pre_filtered_chunks: list = None
 ) -> str:
 
-    chunks = retrieve_treatment_docs(crop, disease)
+    # Use pre-filtered chunks if provided, otherwise retrieve new ones
+    if pre_filtered_chunks:
+        chunks = pre_filtered_chunks
+        print(f"Using {len(chunks)} pre-filtered chunks")
+    else:
+        chunks = retrieve_treatment_docs(crop, disease)
 
     if not chunks:
         return "No treatment information found in knowledge base for this disease."
@@ -55,10 +61,24 @@ def generate_treatment(
 
     print("\nSending to Groq LLM...")
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
+        model="qwen/qwen3.6-27b",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a strict agricultural RAG assistant. "
+                    "Never reveal internal reasoning or thinking. "
+                    "Return only the final answer."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
         temperature=0.2,
-        max_tokens=1000
+        max_tokens=1000,
+        reasoning_format="hidden"
     )
 
     return response.choices[0].message.content

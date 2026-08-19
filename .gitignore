@@ -2,9 +2,12 @@ venv/
 __pycache__/
 *.pyc
 *.pth
+*.pt
 *.bin
 .env
 faiss_index/
 knowledge_base/
 .DS_Store
 .idea/
+.gradio/
+data/uploads/

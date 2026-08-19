@@ -1,22 +1,22 @@
-# Model configuration
-MODEL_NAME = "yolov8n.pt"  # YOLOv8 model (can be replaced with PlantDoc-trained model)
+MODEL_NAME = "HurudzaAI/plantdiseasedetection1"
+
 EMBEDDING_MODEL = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 
-# Chunking configuration
+TRANSLATION_MODEL_HI_EN = "Helsinki-NLP/opus-mt-hi-en"
+TRANSLATION_MODEL_EN_HI = "Helsinki-NLP/opus-mt-en-hi"
+
+
 CHUNK_SIZE = 512
+
 CHUNK_OVERLAP = 64
+
 TOP_K = 5
 
-# Knowledge base configuration
+
+MIN_CHUNK_LENGTH = 50  # Minimum chunk length for retrieval gate
+FAITHFULNESS_THRESHOLD = 0.3  # Minimum word overlap for faithfulness check
+
+
 KNOWLEDGE_BASE_DIR = "knowledge_base/"
+
 INDEX_PATH = "faiss_index/"
-
-# Vector store configuration
-VECTOR_STORE_TYPE = "faiss"  # Options: "faiss" or "qdrant"
-QDRANT_URL = "http://localhost:6333"
-QDRANT_COLLECTION_NAME = "croppilot_knowledge"
-
-# Reliability layer configuration
-CONFIDENCE_THRESHOLD = 0.70
-RETRIEVAL_MIN_RELEVANCE = 0.5
-RETRIEVAL_MIN_CONTENT_LENGTH = 50
