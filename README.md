@@ -1,3 +1,14 @@
+---
+   
+title: CropPilot
+emoji: 🌾
+colorFrom: green
+colorTo: yellow
+sdk: gradio
+app_file: app.py
+pinned: false
+---     
+
 # 🌿 CropPilot
 
 > AI-powered crop disease diagnosis and treatment advisor — backed by official NIPHM government documents. Now with **Hindi language support**!
