@@ -4,12 +4,11 @@ emoji: 🌿
 colorFrom: green
 colorTo: green
 sdk: gradio
-sdk_version: 4.44.1
+sdk_version: 5.49.1
 app_file: app.py
 pinned: true
 license: mit
 ---
-
 # 🌿 CropPilot - AI-Powered Crop Disease Diagnosis
 
 AI-powered crop disease diagnosis and treatment advisor for Indian farmers, with full Hindi/English language support.
