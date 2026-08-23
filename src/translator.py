@@ -20,34 +20,29 @@ if sys.platform == 'win32':
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# =========================
-# Load Hindi → English model
-# =========================
+# Global variables for translation models
+hi_en_tokenizer = None
+hi_en_model = None
+en_hi_tokenizer = None
+en_hi_model = None
 
-print(f"Loading Hindi to English translation model: {TRANSLATION_MODEL_HI_EN}")
-
-hi_en_tokenizer = MarianTokenizer.from_pretrained(
-    TRANSLATION_MODEL_HI_EN
-)
-
-hi_en_model = MarianMTModel.from_pretrained(
-    TRANSLATION_MODEL_HI_EN
-).to(device)
-
-
-# =========================
-# Load English → Hindi model
-# =========================
-
-print(f"Loading English to Hindi translation model: {TRANSLATION_MODEL_EN_HI}")
-
-en_hi_tokenizer = MarianTokenizer.from_pretrained(
-    TRANSLATION_MODEL_EN_HI
-)
-
-en_hi_model = MarianMTModel.from_pretrained(
-    TRANSLATION_MODEL_EN_HI
-).to(device)
+def load_translation_models():
+    """Load translation models - called on first use"""
+    global hi_en_tokenizer, hi_en_model, en_hi_tokenizer, en_hi_model
+    
+    if hi_en_tokenizer is None or hi_en_model is None:
+        print(f"Loading Hindi to English translation model: {TRANSLATION_MODEL_HI_EN}")
+        hi_en_tokenizer = MarianTokenizer.from_pretrained(TRANSLATION_MODEL_HI_EN)
+        hi_en_model = MarianMTModel.from_pretrained(TRANSLATION_MODEL_HI_EN).to(device)
+        print("Hindi to English model loaded")
+    
+    if en_hi_tokenizer is None or en_hi_model is None:
+        print(f"Loading English to Hindi translation model: {TRANSLATION_MODEL_EN_HI}")
+        en_hi_tokenizer = MarianTokenizer.from_pretrained(TRANSLATION_MODEL_EN_HI)
+        en_hi_model = MarianMTModel.from_pretrained(TRANSLATION_MODEL_EN_HI).to(device)
+        print("English to Hindi model loaded")
+    
+    return hi_en_tokenizer, hi_en_model, en_hi_tokenizer, en_hi_model
 
 
 def detect_language(text: str) -> str:
@@ -95,6 +90,8 @@ def translate_to_english(text: str) -> str:
     print("Translating from Hindi to English...")
 
     try:
+        # Load models if not already loaded
+        hi_en_tokenizer, hi_en_model, _, _ = load_translation_models()
 
         inputs = hi_en_tokenizer(
             text,
@@ -104,7 +101,6 @@ def translate_to_english(text: str) -> str:
         ).to(device)
 
         with torch.no_grad():
-
             translated = hi_en_model.generate(
                 **inputs,
                 max_length=512
@@ -120,9 +116,7 @@ def translate_to_english(text: str) -> str:
         return translated_text
 
     except Exception as e:
-
         print(f"Translation error: {str(e)}")
-
         return text
 
 
@@ -144,10 +138,11 @@ def translate_to_hindi(text: str) -> str:
     print("Translating from English to Hindi...")
 
     try:
+        # Load models if not already loaded
+        _, _, en_hi_tokenizer, en_hi_model = load_translation_models()
 
         # Handle long texts by chunking
         if len(text) > 1000:
-
             chunks = [
                 text[i:i + 1000]
                 for i in range(0, len(text), 1000)
@@ -156,7 +151,6 @@ def translate_to_hindi(text: str) -> str:
             translated_chunks = []
 
             for chunk in chunks:
-
                 inputs = en_hi_tokenizer(
                     chunk,
                     return_tensors="pt",
@@ -165,7 +159,6 @@ def translate_to_hindi(text: str) -> str:
                 ).to(device)
 
                 with torch.no_grad():
-
                     translated = en_hi_model.generate(
                         **inputs,
                         max_length=512
@@ -181,7 +174,6 @@ def translate_to_hindi(text: str) -> str:
             translated_text = ' '.join(translated_chunks)
 
         else:
-
             inputs = en_hi_tokenizer(
                 text,
                 return_tensors="pt",
@@ -190,7 +182,6 @@ def translate_to_hindi(text: str) -> str:
             ).to(device)
 
             with torch.no_grad():
-
                 translated = en_hi_model.generate(
                     **inputs,
                     max_length=512
@@ -206,7 +197,5 @@ def translate_to_hindi(text: str) -> str:
         return translated_text
 
     except Exception as e:
-
         print(f"Translation error: {str(e)}")
-
         return text

@@ -3,17 +3,38 @@ from PIL import Image
 import torch
 from src.config import MODEL_NAME
 
+# Global variables for model and processor
+processor = None
+model = None
 
-# Load model once when the file is imported
-print(f"Loading model: {MODEL_NAME}")
-processor = ViTImageProcessor.from_pretrained(MODEL_NAME)
-model = ViTForImageClassification.from_pretrained(MODEL_NAME)
-model.eval()
-
+def load_model():
+    """Load model and processor - called on first use"""
+    global processor, model
+    if processor is None or model is None:
+        print(f"Loading model: {MODEL_NAME}")
+        processor = ViTImageProcessor.from_pretrained(MODEL_NAME)
+        model = ViTForImageClassification.from_pretrained(MODEL_NAME)
+        
+        # Move to GPU if available
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+        model.eval()
+        print(f"Model loaded on device: {device}")
+    
+    return processor, model
 
 def classify_disease(image_path: str) -> dict:
+    """Classify plant disease from image"""
+    # Load model if not already loaded
+    processor, model = load_model()
+    
+    # Open and process image
     image = Image.open(image_path).convert("RGB")
     inputs = processor(images=image, return_tensors="pt")
+    
+    # Move inputs to same device as model
+    device = next(model.parameters()).device
+    inputs = {k: v.to(device) for k, v in inputs.items()}
 
     with torch.no_grad():
         logits = model(**inputs).logits

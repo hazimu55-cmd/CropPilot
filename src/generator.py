@@ -5,7 +5,15 @@ import os
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Global client variable
+client = None
+
+def get_groq_client():
+    """Get Groq client - initialize on first use"""
+    global client
+    if client is None:
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    return client
 
 PROMPT_TEMPLATE = """You are CropPilot, an agricultural expert assistant helping Indian farmers treat crop diseases.
 Answer only using the retrieved documents provided below.
@@ -60,7 +68,11 @@ def generate_treatment(
     )
 
     print("\nSending to Groq LLM...")
-    response = client.chat.completions.create(
+    
+    # Get client and make request
+    groq_client = get_groq_client()
+    
+    response = groq_client.chat.completions.create(
         model="qwen/qwen3.6-27b",
         messages=[
             {
@@ -77,8 +89,7 @@ def generate_treatment(
             }
         ],
         temperature=0.2,
-        max_tokens=1000,
-        reasoning_format="hidden"
+        max_tokens=1000
     )
 
     return response.choices[0].message.content
