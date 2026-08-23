@@ -1,24 +1,23 @@
-name: Sync to Hugging Face
+name: Deploy to Hugging Face
 
 on:
   push:
     branches: [main]
 
 jobs:
-  sync:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Fetch all history for proper sync
+          fetch-depth: 0
 
-      - name: Sync to Hugging Face
+      - name: Sync to Hugging Face Space
         uses: huggingface/hub-sync@v0.1.0
         with:
           github_repo_id: ${{ github.repository }}
           huggingface_repo_id: Hazzim010/CropPilot
           hf_token: ${{ secrets.HF_TOKEN }}
           space_sdk: gradio
-          subdirectory: .
-          force: true  # Force sync to ensure updates are applied
+          force: true
