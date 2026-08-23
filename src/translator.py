@@ -16,14 +16,14 @@ print(f"Using device: {device}")
 # Using Helsinki-NLP models for English-Hindi translation
 print(f"Loading Hindi to English translation model: {TRANSLATION_MODEL_HI_EN}")
 hi_to_en_pipeline = pipeline(
-    "translation_hi_to_en",
+    "translation",
     model=TRANSLATION_MODEL_HI_EN,
     device=device
 )
 
 print(f"Loading English to Hindi translation model: {TRANSLATION_MODEL_EN_HI}")
 en_to_hi_pipeline = pipeline(
-    "translation_en_to_hi",
+    "translation",
     model=TRANSLATION_MODEL_EN_HI,
     device=device
 )
