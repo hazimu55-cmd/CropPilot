@@ -21,4 +21,4 @@ jobs:
           hf_token: ${{ secrets.HF_TOKEN }}
           space_sdk: gradio
           subdirectory: .
-          force: false  # Don't force sync if there are conflicts
+          force: true  # Force sync to ensure updates are applied
