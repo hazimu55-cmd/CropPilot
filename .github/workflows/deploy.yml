@@ -20,4 +20,3 @@ jobs:
           huggingface_repo_id: Hazzim010/CropPilot
           hf_token: ${{ secrets.HF_TOKEN }}
           space_sdk: gradio
-          force: true

@@ -18,9 +18,9 @@ AI-powered crop disease diagnosis and treatment advisor for Indian farmers, with
 
 - 🔍 **Disease Detection**: Upload plant leaf images for AI-powered disease diagnosis
 - 💬 **Bilingual Chatbot**: Ask agricultural questions in Hindi or English
-- �️ **Support System**: Get help from agricultural experts
+- 🛠️ **Support System**: Get help from agricultural experts
 - 🌾 **Supported Crops**: Corn, Potato, Rice, Wheat
-- � **Knowledge Base**: Backed by official NIPHM IPM packages
+- 📚 **Knowledge Base**: Backed by official NIPHM IPM packages
 - 🇮🇳 **Hindi Support**: Automatic translation and language detection
 
 ## How to Use
