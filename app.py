@@ -1,3 +1,4 @@
+import spaces
 import gradio as gr
 import sys
 import io
@@ -29,7 +30,7 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-
+@spaces.GPU(duration=120)
 def chatbot_response(message, history, language="Auto (स्वचालित)"):
     """Chatbot for general agricultural questions with Hindi support"""
 
@@ -152,7 +153,7 @@ For urgent matters, please contact us directly at support@croppilot.com
 
 
 
-
+@spaces.GPU(duration=120)
 def analyze_crop(image, user_context, language="Auto (स्वचालित)"):
 
     if image is None:
@@ -505,7 +506,4 @@ demo = gr.TabbedInterface(
     ["🔍 Disease Diagnosis", "💬 Chatbot", "🛠️ Support"]
 )
 
-demo.launch(
-    server_name="0.0.0.0",
-    server_port=7863
-)
+demo.launch()
