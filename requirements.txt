@@ -9,7 +9,6 @@ langchain-community==0.4.2
 langchain-huggingface==1.2.2
 faiss-cpu==1.8.0
 pypdf==4.2.0
-gradio==5.50.0
 python-dotenv==1.0.1
 datasets==2.19.0
 accelerate==0.30.0
