@@ -258,7 +258,11 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
         chunks = retrieve_treatment_docs(crop, disease)
         
         # Apply retrieval gate
-        filtered_chunks = apply_retrieval_gate(chunks)
+        filtered_chunks = apply_retrieval_gate(
+            chunks,
+            crop,
+            disease
+        )
         
         if not filtered_chunks:
             treatment_en = (

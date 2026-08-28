@@ -28,11 +28,17 @@ def retrieve_treatment_docs(crop: str, disease: str) -> list:
 
     chunks = []
     for i, doc in enumerate(docs):
-        chunks.append({
+        chunk = {
             "content": doc.page_content,
             "source": doc.metadata.get("source", "Unknown"),
             "page": doc.metadata.get("page", "Unknown")
-        })
-        print(f"Retrieved chunk {i+1} from {chunks[-1]['source']} page {chunks[-1]['page']}")
+        }
+
+        chunks.append(chunk)
+
+        print(f"\n--- Retrieved chunk {i + 1} ---")
+        print(f"Source: {chunk['source']}")
+        print(f"Page: {chunk['page']}")
+        print(f"Content:\n{chunk['content']}")
 
     return chunks
