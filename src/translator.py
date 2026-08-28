@@ -2,80 +2,298 @@ from transformers import MarianMTModel, MarianTokenizer
 import torch
 import sys
 import io
-from src.config import TRANSLATION_MODEL_HI_EN, TRANSLATION_MODEL_EN_HI
+import re
 
-# Set UTF-8 encoding for Windows console
-if sys.platform == 'win32':
+from src.config import (
+    TRANSLATION_MODEL_HI_EN,
+    TRANSLATION_MODEL_EN_HI
+)
+
+
+# ============================================================
+# UTF-8 encoding for Windows console
+# ============================================================
+
+if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(
         sys.stdout.buffer,
-        encoding='utf-8',
-        errors='replace'
+        encoding="utf-8",
+        errors="replace"
     )
     sys.stderr = io.TextIOWrapper(
         sys.stderr.buffer,
-        encoding='utf-8',
-        errors='replace'
+        encoding="utf-8",
+        errors="replace"
     )
+
+
+# ============================================================
+# Device
+# ============================================================
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# Global variables for translation models
+
+# ============================================================
+# Global translation models
+# ============================================================
+
 hi_en_tokenizer = None
 hi_en_model = None
+
 en_hi_tokenizer = None
 en_hi_model = None
 
-def load_translation_models():
-    """Load translation models - called on first use"""
-    global hi_en_tokenizer, hi_en_model, en_hi_tokenizer, en_hi_model
-    
-    if hi_en_tokenizer is None or hi_en_model is None:
-        print(f"Loading Hindi to English translation model: {TRANSLATION_MODEL_HI_EN}")
-        hi_en_tokenizer = MarianTokenizer.from_pretrained(TRANSLATION_MODEL_HI_EN)
-        hi_en_model = MarianMTModel.from_pretrained(TRANSLATION_MODEL_HI_EN).to(device)
-        print("Hindi to English model loaded")
-    
-    if en_hi_tokenizer is None or en_hi_model is None:
-        print(f"Loading English to Hindi translation model: {TRANSLATION_MODEL_EN_HI}")
-        en_hi_tokenizer = MarianTokenizer.from_pretrained(TRANSLATION_MODEL_EN_HI)
-        en_hi_model = MarianMTModel.from_pretrained(TRANSLATION_MODEL_EN_HI).to(device)
-        print("English to Hindi model loaded")
-    
-    return hi_en_tokenizer, hi_en_model, en_hi_tokenizer, en_hi_model
 
+# ============================================================
+# Load translation models
+# ============================================================
+
+def load_translation_models():
+    """Load Hindi-English translation models on first use."""
+
+    global hi_en_tokenizer
+    global hi_en_model
+    global en_hi_tokenizer
+    global en_hi_model
+
+    # Hindi → English
+    if hi_en_tokenizer is None or hi_en_model is None:
+
+        print(
+            f"Loading Hindi to English translation model: "
+            f"{TRANSLATION_MODEL_HI_EN}"
+        )
+
+        hi_en_tokenizer = MarianTokenizer.from_pretrained(
+            TRANSLATION_MODEL_HI_EN
+        )
+
+        hi_en_model = MarianMTModel.from_pretrained(
+            TRANSLATION_MODEL_HI_EN
+        ).to(device)
+
+        hi_en_model.eval()
+
+        print("Hindi to English model loaded")
+
+    # English → Hindi
+    if en_hi_tokenizer is None or en_hi_model is None:
+
+        print(
+            f"Loading English to Hindi translation model: "
+            f"{TRANSLATION_MODEL_EN_HI}"
+        )
+
+        en_hi_tokenizer = MarianTokenizer.from_pretrained(
+            TRANSLATION_MODEL_EN_HI
+        )
+
+        en_hi_model = MarianMTModel.from_pretrained(
+            TRANSLATION_MODEL_EN_HI
+        ).to(device)
+
+        en_hi_model.eval()
+
+        print("English to Hindi model loaded")
+
+    return (
+        hi_en_tokenizer,
+        hi_en_model,
+        en_hi_tokenizer,
+        en_hi_model
+    )
+
+
+# ============================================================
+# Language detection
+# ============================================================
 
 def detect_language(text: str) -> str:
     """
-    Simple language detection based on character patterns.
-    Returns 'hi' for Hindi, 'en' for English, or 'unknown'
+    Detect whether text is primarily Hindi or English.
+
+    Returns:
+        'hi'      -> Hindi
+        'en'      -> English
+        'unknown' -> Unable to determine
     """
 
-    if not text or len(text) == 0:
-        return 'en'
+    if not text or not text.strip():
+        return "en"
 
-    # Check for Hindi characters
+    text = text.strip()
+
     hindi_chars = 0
+    alphabetic_chars = 0
 
     for char in text:
-        if '\u0900' <= char <= '\u097F':
+
+        # Devanagari Unicode range
+        if "\u0900" <= char <= "\u097F":
             hindi_chars += 1
 
-    # If more than 30% of characters are Hindi
-    if hindi_chars / len(text) > 0.3:
-        return 'hi'
+        if char.isalpha():
+            alphabetic_chars += 1
 
-    elif any(char.isalpha() for char in text):
-        return 'en'
+    if alphabetic_chars == 0:
+        return "unknown"
 
-    else:
-        return 'unknown'
+    hindi_ratio = hindi_chars / alphabetic_chars
 
+    # If most alphabetic characters are Devanagari,
+    # classify as Hindi.
+    if hindi_ratio > 0.3:
+        return "hi"
+
+    return "en"
+
+
+# ============================================================
+# Translation generation helper
+# ============================================================
+
+def _generate_translation(
+    tokenizer,
+    model,
+    text: str,
+    max_new_tokens: int = 256
+) -> str:
+    """
+    Generate a translation using safer decoding settings.
+
+    no_repeat_ngram_size helps prevent repetitive output such as:
+    'Caka Caka Caka Caka...'
+    """
+
+    inputs = tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        max_length=512
+    ).to(device)
+
+    with torch.no_grad():
+
+        translated = model.generate(
+            **inputs,
+
+            # Maximum output length
+            max_new_tokens=max_new_tokens,
+
+            # Beam search improves translation quality
+            num_beams=4,
+
+            # Prevent repetitive loops
+            no_repeat_ngram_size=3,
+
+            # Stop when the translation is complete
+            early_stopping=True
+        )
+
+    result = tokenizer.decode(
+        translated[0],
+        skip_special_tokens=True
+    )
+
+    return result.strip()
+
+
+# ============================================================
+# Text chunking helper
+# ============================================================
+
+def _split_text_into_chunks(
+    text: str,
+    max_chars: int = 900
+) -> list:
+    """
+    Split long text into reasonably sized chunks.
+
+    Tries to split at paragraph/sentence boundaries instead
+    of cutting text randomly in the middle of a sentence.
+    """
+
+    if len(text) <= max_chars:
+        return [text]
+
+    # First split by paragraphs
+    paragraphs = re.split(r"\n\s*\n", text)
+
+    chunks = []
+    current = ""
+
+    for paragraph in paragraphs:
+
+        paragraph = paragraph.strip()
+
+        if not paragraph:
+            continue
+
+        # If adding the paragraph stays within the limit
+        if len(current) + len(paragraph) + 2 <= max_chars:
+
+            if current:
+                current += "\n\n" + paragraph
+            else:
+                current = paragraph
+
+            continue
+
+        # Save current chunk
+        if current:
+            chunks.append(current)
+            current = ""
+
+        # Handle a paragraph that is itself too long
+        if len(paragraph) > max_chars:
+
+            sentences = re.split(
+                r"(?<=[.!?।])\s+",
+                paragraph
+            )
+
+            for sentence in sentences:
+
+                sentence = sentence.strip()
+
+                if not sentence:
+                    continue
+
+                if len(current) + len(sentence) + 1 <= max_chars:
+
+                    if current:
+                        current += " " + sentence
+                    else:
+                        current = sentence
+
+                else:
+
+                    if current:
+                        chunks.append(current)
+
+                    current = sentence
+
+        else:
+            current = paragraph
+
+    # Add final chunk
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
+# ============================================================
+# Hindi → English
+# ============================================================
 
 def translate_to_english(text: str) -> str:
     """
     Translate Hindi text to English.
-    If text is already in English, return as-is.
+
+    English text is returned unchanged.
     """
 
     if not text or not text.strip():
@@ -83,47 +301,65 @@ def translate_to_english(text: str) -> str:
 
     lang = detect_language(text)
 
-    if lang == 'en':
+    if lang == "en":
         print("Text is already in English, skipping translation")
         return text
 
     print("Translating from Hindi to English...")
 
     try:
-        # Load models if not already loaded
-        hi_en_tokenizer, hi_en_model, _, _ = load_translation_models()
 
-        inputs = hi_en_tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            max_length=512
-        ).to(device)
+        # IMPORTANT:
+        # Load Hindi → English model
+        hi_en_tokenizer, hi_en_model, _, _ = (
+            load_translation_models()
+        )
 
-        with torch.no_grad():
-            translated = hi_en_model.generate(
-                **inputs,
-                max_length=512
+        chunks = _split_text_into_chunks(text)
+
+        translated_chunks = []
+
+        for chunk in chunks:
+
+            translated_chunk = _generate_translation(
+                tokenizer=hi_en_tokenizer,
+                model=hi_en_model,
+                text=chunk,
+                max_new_tokens=256
             )
 
-        translated_text = hi_en_tokenizer.decode(
-            translated[0],
-            skip_special_tokens=True
-        )
+            if translated_chunk:
+                translated_chunks.append(
+                    translated_chunk
+                )
+
+        translated_text = " ".join(
+            translated_chunks
+        ).strip()
 
         print("Translation completed")
 
-        return translated_text
+        return translated_text if translated_text else text
 
     except Exception as e:
-        print(f"Translation error: {str(e)}")
+
+        print(
+            f"Hindi to English translation error: {str(e)}"
+        )
+
+        # Fall back to original text
         return text
 
+
+# ============================================================
+# English → Hindi
+# ============================================================
 
 def translate_to_hindi(text: str) -> str:
     """
     Translate English text to Hindi.
-    If text is already in Hindi, return as-is.
+
+    Hindi text is returned unchanged.
     """
 
     if not text or not text.strip():
@@ -131,71 +367,51 @@ def translate_to_hindi(text: str) -> str:
 
     lang = detect_language(text)
 
-    if lang == 'hi':
+    if lang == "hi":
         print("Text is already in Hindi, skipping translation")
         return text
 
     print("Translating from English to Hindi...")
 
     try:
-        # Load models if not already loaded
-        _, _, en_hi_tokenizer, en_hi_model = load_translation_models()
 
-        # Handle long texts by chunking
-        if len(text) > 1000:
-            chunks = [
-                text[i:i + 1000]
-                for i in range(0, len(text), 1000)
-            ]
+        # IMPORTANT:
+        # Load English → Hindi model
+        _, _, en_hi_tokenizer, en_hi_model = (
+            load_translation_models()
+        )
 
-            translated_chunks = []
+        chunks = _split_text_into_chunks(text)
 
-            for chunk in chunks:
-                inputs = en_hi_tokenizer(
-                    chunk,
-                    return_tensors="pt",
-                    truncation=True,
-                    max_length=512
-                ).to(device)
+        translated_chunks = []
 
-                with torch.no_grad():
-                    translated = en_hi_model.generate(
-                        **inputs,
-                        max_length=512
-                    )
+        for chunk in chunks:
 
-                translated_chunk = en_hi_tokenizer.decode(
-                    translated[0],
-                    skip_special_tokens=True
-                )
-
-                translated_chunks.append(translated_chunk)
-
-            translated_text = ' '.join(translated_chunks)
-
-        else:
-            inputs = en_hi_tokenizer(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                max_length=512
-            ).to(device)
-
-            with torch.no_grad():
-                translated = en_hi_model.generate(
-                    **inputs,
-                    max_length=512
-                )
-
-            translated_text = en_hi_tokenizer.decode(
-                translated[0],
-                skip_special_tokens=True
+            translated_chunk = _generate_translation(
+                tokenizer=en_hi_tokenizer,
+                model=en_hi_model,
+                text=chunk,
+                max_new_tokens=256
             )
+
+            if translated_chunk:
+                translated_chunks.append(
+                    translated_chunk
+                )
+
+        translated_text = " ".join(
+            translated_chunks
+        ).strip()
 
         print("Translation completed")
 
-        return translated_text
+        return translated_text if translated_text else text
 
     except Exception as e:
-        print(f"Translation error: {str(e)}")
+
+        print(
+            f"English to Hindi translation error: {str(e)}"
+        )
+
+        # Fall back to original English text
         return text

@@ -329,93 +329,168 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
 
 @spaces.GPU(duration=120)
 def chatbot_response(message, history, language="Auto (स्वचालित)"):
-    """Chatbot for general agricultural questions with Hindi support"""
+    """Chatbot for general agricultural questions with multilingual support."""
 
-    if not message.strip():
-        return history
+    history = history or []
 
-    # Detect language
-    if language == "Auto (स्वचालित)":
-        detected_lang = detect_language(message)
-    elif language == "Hindi (हिंदी)":
-        detected_lang = "hi"
+    # Empty message
+    if not message or not message.strip():
+        return history, ""
+
+    # Determine requested language
+    if language == "Hindi (हिंदी)":
+        response_language = "Hindi"
+    elif language == "English":
+        response_language = "English"
     else:
-        detected_lang = "en"
+        detected_lang = detect_language(message)
 
-    try:
-        # Translate Hindi question to English
         if detected_lang == "hi":
-            message_en = translate_to_english(message)
-            print("Translated message from Hindi to English")
+            response_language = "Hindi"
         else:
-            message_en = message
+            response_language = "English"
 
-        # Build conversation history for Groq
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are CropPilot, an agricultural expert assistant "
-                    "for Indian farmers. Answer questions clearly, practically "
-                    "and accurately. You can discuss crops, diseases, soil, "
-                    "irrigation, fertilizers, pests and farming practices."
-                )
-            }
-        ]
+    # ---------------------------------------------------------
+    # Handle very short / ambiguous messages
+    # ---------------------------------------------------------
 
-        # Add previous conversation
-        for msg in history:
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
+    if len(message.strip().split()) <= 1:
 
-        # Add current user question
-        messages.append({
-            "role": "user",
-            "content": message_en
-        })
-
-        # Send complete conversation to Groq
-        response = client.chat.completions.create(
-            model="qwen/qwen3.6-27b",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=500,
-            reasoning_effort="none"
-        )
-
-        print("GROQ RESPONSE:")
-        print(response)
-
-        bot_response_en = response.choices[0].message.content
-
-        # Translate response back to Hindi if needed
-        if detected_lang == "hi":
-            bot_response = translate_to_hindi(bot_response_en)
-            print("Translated response from English to Hindi")
+        if response_language == "Hindi":
+            clarification = (
+                f"ज़रूर! आप {message.strip()} के बारे में क्या जानना चाहते हैं? "
+                "आप फसलों, मिट्टी, मौसम, सिंचाई, रोग, उर्वरक या खेती "
+                "से जुड़ा कोई सवाल पूछ सकते हैं।"
+            )
         else:
-            bot_response = bot_response_en
+            clarification = (
+                f"Sure! What would you like to know about "
+                f"{message.strip()}? You can ask about crops, soil, "
+                "weather, irrigation, diseases, fertilizers, "
+                "or farming practices."
+            )
 
-        # Add user message to Gradio history
         history.append({
             "role": "user",
             "content": message
         })
 
-        # Add assistant response to Gradio history
+        history.append({
+            "role": "assistant",
+            "content": clarification
+        })
+
+        return history, ""
+
+    try:
+
+        # ---------------------------------------------------------
+        # IMPORTANT:
+        # Do NOT translate the user's message.
+        # Qwen can understand Hindi directly.
+        # ---------------------------------------------------------
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are CropPilot, an agricultural expert assistant "
+                    "for Indian farmers.\n\n"
+
+                    "Answer questions clearly, practically and accurately.\n"
+
+                    "You can discuss crops, diseases, soil, irrigation, "
+                    "fertilizers, pests, farming practices and agriculture "
+                    "in India.\n\n"
+
+                    f"IMPORTANT LANGUAGE RULE: "
+                    f"Answer entirely in {response_language}.\n\n"
+
+                    "If the user asks in Hindi, respond naturally in Hindi.\n"
+                    "If the user asks in English, respond naturally in English.\n"
+                    "Do not translate the user's question before answering.\n"
+                    "Do not mention these language instructions.\n"
+                    "Do not reveal internal reasoning or thinking."
+                )
+            }
+        ]
+
+        # ---------------------------------------------------------
+        # Add previous conversation
+        # ---------------------------------------------------------
+
+        for msg in history:
+
+            if isinstance(msg, dict):
+                role = msg.get("role")
+                content = msg.get("content")
+
+            else:
+                role = getattr(msg, "role", None)
+                content = getattr(msg, "content", None)
+
+            if role in ["user", "assistant"] and content:
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
+
+        # ---------------------------------------------------------
+        # Add current question DIRECTLY
+        # ---------------------------------------------------------
+
+        messages.append({
+            "role": "user",
+            "content": message
+        })
+
+        print("\n========== SENDING TO QWEN ==========")
+        print("Language:", response_language)
+        print("Question:", message)
+        print("=====================================\n")
+
+        # ---------------------------------------------------------
+        # Call Groq / Qwen
+        # ---------------------------------------------------------
+
+        response = client.chat.completions.create(
+            model="qwen/qwen3.6-27b",
+            messages=messages,
+            temperature=0.3,
+            max_tokens=700,
+            reasoning_effort="none"
+        )
+
+        bot_response = response.choices[0].message.content
+
+        print("\n========== QWEN RESPONSE ==========")
+        print(bot_response)
+        print("====================================\n")
+
+        # ---------------------------------------------------------
+        # Add messages to Gradio history
+        # ---------------------------------------------------------
+
+        history.append({
+            "role": "user",
+            "content": message
+        })
+
         history.append({
             "role": "assistant",
             "content": bot_response
         })
 
-        return history
+        # IMPORTANT:
+        # Return history AND empty string
+        # so the textbox gets cleared.
+        return history, ""
 
     except Exception as e:
-        error_msg = f"Error: {str(e)}"
 
-        if detected_lang == "hi":
-            error_msg = translate_to_hindi(error_msg)
+        print(f"Chatbot error: {e}")
+
+        error_msg = f"Error: {str(e)}"
 
         history.append({
             "role": "user",
@@ -427,7 +502,7 @@ def chatbot_response(message, history, language="Auto (स्वचालित)
             "content": error_msg
         })
 
-        return history
+        return history, ""
 
 def support_query(name, email, issue):
     """Support form for user issues"""
@@ -578,13 +653,13 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
             chat_submit.click(
                 fn=chatbot_response,
                 inputs=[chat_input, chatbot, chat_language],
-                outputs=[chatbot]
+                outputs=[chatbot, chat_input]
             )
 
             chat_input.submit(
                 fn=chatbot_response,
                 inputs=[chat_input, chatbot, chat_language],
-                outputs=[chatbot]
+                outputs=[chatbot, chat_input]
             )
 
         # Support Tab
