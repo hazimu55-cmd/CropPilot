@@ -455,48 +455,46 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
         </p>
     </div>
     """)
-    
-    with gr.TabbedInterface([gr.Blocks(), gr.Blocks(), gr.Blocks()], 
-                            ["🔍 Disease Diagnosis", "💬 Chatbot", "🛠️ Support"]) as main_tabs:
-        
+
+    # Main tabs
+    with gr.Tabs() as main_tabs:
         # Disease Diagnosis Tab
-        with gr.Blocks():
+        with gr.Tab("🔍 Disease Diagnosis"):
             gr.Markdown("### Upload Plant Photo for Disease Detection")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
-                    # Image upload with elegant styling
                     image_input = gr.Image(
                         type="filepath",
                         label="",
                         height=350,
                         elem_classes=["upload-area"]
                     )
-                    
-                    # Context input
+
                     context_input = gr.Textbox(
                         label="Additional Context (Optional)",
                         placeholder="e.g. Maharashtra, Kharif season, irrigated field",
                         lines=2,
                         max_lines=2
                     )
-                    
-                    # Language selection
+
                     language_input = gr.Radio(
-                        choices=["Auto (स्वचालित)", "English", "Hindi (हिंदी)"],
+                        choices=[
+                            "Auto (स्वचालित)",
+                            "English",
+                            "Hindi (हिंदी)"
+                        ],
                         value="Auto (स्वचालित)",
                         label="Language / भाषा"
                     )
-                    
-                    # Submit button
+
                     submit_btn = gr.Button(
                         "🔍 Diagnose Disease",
                         variant="primary",
                         elem_classes=["diagnose-btn"],
                         size="lg"
                     )
-                    
-                    # Info box
+
                     gr.HTML("""
                     <div class="info-box">
                         <b style="font-size: 1.1em;">🌾 Supported Crops:</b><br>
@@ -507,10 +505,10 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                         Upload clear leaf images for best results
                     </div>
                     """)
-                
+
                 with gr.Column(scale=1):
-                    # Diagnosis output
                     gr.Markdown("### 🔍 Diagnosis Results")
+
                     diagnosis_out = gr.Textbox(
                         label="",
                         lines=10,
@@ -518,9 +516,9 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                         placeholder="Upload a plant photo and click Diagnose...",
                         elem_classes=["result-text"]
                     )
-                    
-                    # Treatment output
+
                     gr.Markdown("### 💊 Treatment Plan")
+
                     treatment_out = gr.Textbox(
                         label="",
                         lines=20,
@@ -528,31 +526,35 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                         placeholder="Treatment plan will appear here...",
                         elem_classes=["result-text"]
                     )
-            
+
             submit_btn.click(
                 fn=analyze_crop,
                 inputs=[image_input, context_input, language_input],
                 outputs=[diagnosis_out, treatment_out]
             )
-        
+
         # Chatbot Tab
-        with gr.Blocks():
+        with gr.Tab("💬 Chatbot"):
             gr.Markdown("### 💬 Agricultural Expert Chatbot")
-            gr.Markdown("Ask general agricultural questions and get expert advice")
-            
-            # Language selection
+            gr.Markdown(
+                "Ask general agricultural questions and get expert advice"
+            )
+
             chat_language = gr.Radio(
-                choices=["Auto (स्वचालित)", "English", "Hindi (हिंदी)"],
+                choices=[
+                    "Auto (स्वचालित)",
+                    "English",
+                    "Hindi (हिंदी)"
+                ],
                 value="Auto (स्वचालित)",
                 label="Language / भाषा"
             )
-            
-            # Chatbot interface
+
             chatbot = gr.Chatbot(
                 height=500,
                 elem_classes=["chatbot-container"]
             )
-            
+
             with gr.Row():
                 chat_input = gr.Textbox(
                     label="Your Question / आपका प्रश्न",
@@ -560,46 +562,56 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                     scale=4,
                     max_lines=1
                 )
-                chat_submit = gr.Button("Send", variant="primary", scale=1, size="lg")
-            
+
+                chat_submit = gr.Button(
+                    "Send",
+                    variant="primary",
+                    scale=1,
+                    size="lg"
+                )
+
             chat_submit.click(
                 fn=chatbot_response,
                 inputs=[chat_input, chatbot, chat_language],
                 outputs=[chatbot]
             )
+
             chat_input.submit(
                 fn=chatbot_response,
                 inputs=[chat_input, chatbot, chat_language],
                 outputs=[chatbot]
             )
-        
+
         # Support Tab
-        with gr.Blocks():
+        with gr.Tab("🛠️ Support"):
             gr.Markdown("### 🛠️ Contact Support")
             gr.Markdown("Need help? Contact our support team")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
                     name_input = gr.Textbox(
                         label="Your Name",
                         placeholder="Enter your name"
                     )
+
                     email_input = gr.Textbox(
                         label="Email Address",
                         placeholder="your@email.com"
                     )
+
                     issue_input = gr.Textbox(
                         label="Describe Your Issue",
                         placeholder="Please describe the problem you're facing...",
                         lines=5
                     )
+
                     support_submit = gr.Button(
                         "Submit Support Request",
                         variant="primary",
                         elem_classes=["diagnose-btn"],
                         size="lg"
                     )
-                
+
                 with gr.Column(scale=1):
                     support_output = gr.Textbox(
                         label="Support Response",
@@ -608,7 +620,7 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                         placeholder="Your support request confirmation will appear here...",
                         elem_classes=["result-text"]
                     )
-            
+
             support_submit.click(
                 fn=support_query,
                 inputs=[name_input, email_input, issue_input],
