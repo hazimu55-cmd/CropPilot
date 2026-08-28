@@ -556,6 +556,7 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
 
             chatbot = gr.Chatbot(
                 height=500,
+                type="messages",
                 elem_classes=["chatbot-container"]
             )
 
