@@ -13,7 +13,7 @@ license: mit
 
 AI-powered crop disease diagnosis and treatment advisor for Indian farmers, with full Hindi/English language support.
 
-🔗 **Live Demo:** [Try PhishWall](https://phishwall-m7m.streamlit.app/)
+🔗 **Live Demo:** [Try CropPilot](https://huggingface.co/spaces/Hazzim010/CropPilot)
 
 ## Features
 - 🔍 **Disease Detection**: Upload plant leaf images for AI-powered disease diagnosis
