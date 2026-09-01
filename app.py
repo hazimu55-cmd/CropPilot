@@ -158,11 +158,11 @@ css = """
         max-width: 100% !important;
         padding: 15px !important;
     }
-    
+
     .diagnose-btn {
         width: 100% !important;
     }
-    
+
     .info-card, .result-card {
         padding: 15px !important;
     }
@@ -179,10 +179,11 @@ footer {
 }
 """
 
+
 @spaces.GPU(duration=120)
 def analyze_crop(image, user_context, language="Auto (स्वचालित)"):
     """Analyze crop disease with improved prediction logic"""
-    
+
     if image is None:
         return "Please upload an image.", ""
 
@@ -195,7 +196,7 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
         detected_lang = "hi"
     else:  # English
         detected_lang = "en"
-    
+
     if detected_lang == "hi":
         user_context_en = translate_to_english(user_context)
         print(f"Translated context from Hindi to English")
@@ -208,7 +209,7 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
         crop, disease = parse_label(top["label"])
         confidence = top["confidence"]
 
-        print(f"Classified: {crop} - {disease} ({confidence*100:.1f}%)")
+        print(f"Classified: {crop} - {disease} ({confidence * 100:.1f}%)")
 
         # Confidence threshold for reliable predictions
         if confidence < 0.5:
@@ -216,13 +217,13 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
                 f"⚠️ Low Confidence Detection\n\n"
                 f"Crop      : {crop}\n"
                 f"Disease   : {disease}\n"
-                f"Confidence: {confidence*100:.1f}%\n\n"
+                f"Confidence: {confidence * 100:.1f}%\n\n"
                 f"Confidence is below 50%. The image quality may be poor or the disease "
                 f"may not be one of the supported types. Please try a clearer image of a "
                 f"leaf from our supported crops: Corn, Potato, Rice, or Wheat."
             )
             treatment_en = "📸 Please upload a clearer leaf image for accurate diagnosis."
-            
+
             # Translate to Hindi if needed
             if detected_lang == "hi":
                 diagnosis = translate_to_hindi(diagnosis_en)
@@ -230,7 +231,7 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
             else:
                 diagnosis = diagnosis_en
                 treatment = treatment_en
-            
+
             return diagnosis, treatment
 
         if disease.lower() == "healthy":
@@ -238,12 +239,12 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
                 f"✅ Healthy Plant\n\n"
                 f"Crop      : {crop}\n"
                 f"Status    : Healthy ✓\n"
-                f"Confidence: {confidence*100:.1f}%\n\n"
+                f"Confidence: {confidence * 100:.1f}%\n\n"
                 f"Great news! No disease detected. Your plant looks healthy. "
                 f"Continue with regular monitoring and good agricultural practices."
             )
             treatment_en = "🌱 No treatment needed. Keep up the good work with proper irrigation, fertilization, and pest monitoring."
-            
+
             # Translate to Hindi if needed
             if detected_lang == "hi":
                 diagnosis = translate_to_hindi(diagnosis_en)
@@ -256,14 +257,14 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
 
         # Retrieve treatment documents
         chunks = retrieve_treatment_docs(crop, disease)
-        
+
         # Apply retrieval gate
         filtered_chunks = apply_retrieval_gate(
             chunks,
             crop,
             disease
         )
-        
+
         if not filtered_chunks:
             treatment_en = (
                 f"⚠️ Limited Information\n\n"
@@ -278,36 +279,36 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
         else:
             # Generate treatment with filtered chunks
             treatment_en = generate_treatment(crop, disease, confidence, user_context_en, filtered_chunks)
-            
+
             # Check faithfulness
             is_faithful, faithfulness_score = check_faithfulness(treatment_en, filtered_chunks)
-            
+
             # Add warning if not faithful
             if not is_faithful:
                 treatment_en += format_faithfulness_warning(faithfulness_score)
 
         alternatives = result["alternatives"]
-        
+
         # Build comprehensive diagnosis
         diagnosis_en = (
             f"🔍 Disease Detection\n\n"
             f"Crop      : {crop}\n"
             f"Disease   : {disease}\n"
-            f"Confidence: {confidence*100:.1f}%\n\n"
+            f"Confidence: {confidence * 100:.1f}%\n\n"
         )
-        
+
         if confidence >= 0.7:
             diagnosis_en += "✅ High confidence detection\n\n"
         elif confidence >= 0.5:
             diagnosis_en += "⚠️ Moderate confidence detection\n\n"
-        
+
         if alternatives:
             diagnosis_en += "Other possibilities considered:\n"
             diagnosis_en += "\n".join(
-                f"  • {parse_label(a['label'])[1]} ({a['confidence']*100:.1f}%)"
+                f"  • {parse_label(a['label'])[1]} ({a['confidence'] * 100:.1f}%)"
                 for a in alternatives
             )
-        
+
         # Translate to Hindi if needed
         if detected_lang == "hi":
             diagnosis = translate_to_hindi(diagnosis_en)
@@ -317,15 +318,16 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
             treatment = treatment_en
 
         return diagnosis, treatment
-        
+
     except Exception as e:
         error_msg = f"❌ Error during analysis: {str(e)}"
         print(f"Error: {e}")
-        
+
         if detected_lang == "hi":
             error_msg = translate_to_hindi(error_msg)
-        
+
         return error_msg, "Please try again with a clearer image."
+
 
 @spaces.GPU(duration=120)
 def chatbot_response(message, history, language="Auto (स्वचालित)"):
@@ -504,11 +506,12 @@ def chatbot_response(message, history, language="Auto (स्वचालित)
 
         return history, ""
 
+
 def support_query(name, email, issue):
     """Support form for user issues"""
     if not name or not email or not issue:
         return "Please fill in all fields."
-    
+
     support_message = f"""
 Thank you for contacting CropPilot Support!
 
@@ -522,9 +525,9 @@ For urgent matters, please contact us directly at support@croppilot.com
 """
     return support_message
 
+
 # Create the main interface
 with gr.Blocks(title="CropPilot", css=css) as demo:
-    
     # Header
     gr.HTML("""
     <div class="main-header">
@@ -660,51 +663,6 @@ with gr.Blocks(title="CropPilot", css=css) as demo:
                 fn=chatbot_response,
                 inputs=[chat_input, chatbot, chat_language],
                 outputs=[chatbot, chat_input]
-            )
-
-        # Support Tab
-        with gr.Tab("🛠️ Support"):
-            gr.Markdown("### 🛠️ Contact Support")
-            gr.Markdown("Need help? Contact our support team")
-
-            with gr.Row():
-                with gr.Column(scale=1):
-                    name_input = gr.Textbox(
-                        label="Your Name",
-                        placeholder="Enter your name"
-                    )
-
-                    email_input = gr.Textbox(
-                        label="Email Address",
-                        placeholder="your@email.com"
-                    )
-
-                    issue_input = gr.Textbox(
-                        label="Describe Your Issue",
-                        placeholder="Please describe the problem you're facing...",
-                        lines=5
-                    )
-
-                    support_submit = gr.Button(
-                        "Submit Support Request",
-                        variant="primary",
-                        elem_classes=["diagnose-btn"],
-                        size="lg"
-                    )
-
-                with gr.Column(scale=1):
-                    support_output = gr.Textbox(
-                        label="Support Response",
-                        lines=12,
-                        interactive=False,
-                        placeholder="Your support request confirmation will appear here...",
-                        elem_classes=["result-text"]
-                    )
-
-            support_submit.click(
-                fn=support_query,
-                inputs=[name_input, email_input, issue_input],
-                outputs=[support_output]
             )
 
 # Launch the app
