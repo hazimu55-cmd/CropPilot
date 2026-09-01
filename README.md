@@ -13,8 +13,9 @@ license: mit
 
 AI-powered crop disease diagnosis and treatment advisor for Indian farmers, with full Hindi/English language support.
 
-## Features
+🔗 **Live Demo:** [Try CropPilot](https://huggingface.co/spaces/Hazzim010/CropPilot)
 
+## Features
 - 🔍 **Disease Detection**: Upload plant leaf images for AI-powered disease diagnosis
 - 💬 **Bilingual Chatbot**: Ask agricultural questions in Hindi or English
 - 🛠️ **Support System**: Get help from agricultural experts
