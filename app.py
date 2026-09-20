@@ -205,11 +205,69 @@ def analyze_crop(image, user_context, language="Auto (स्वचालित)"
 
     try:
         result = classify_disease(image)
+
+        # Handle invalid image rejected by the validity gate
+        if result.get("status") == "invalid":
+            diagnosis_en = result.get(
+                "message",
+                """⚠️ Unable to Diagnose
+
+        This image could not be identified as a
+        supported crop leaf.
+
+        Please upload a clear image of:
+
+        🌽 Corn
+        🥔 Potato
+        🌾 Rice
+        🌾 Wheat"""
+            )
+
+            treatment_en = (
+                "📸 Please upload a clear image of a leaf "
+                "from Corn, Potato, Rice, or Wheat."
+            )
+
+            if detected_lang == "hi":
+                diagnosis = translate_to_hindi(diagnosis_en)
+                treatment = translate_to_hindi(treatment_en)
+            else:
+                diagnosis = diagnosis_en
+                treatment = treatment_en
+
+            return diagnosis, treatment
+
+        # Handle valid crop image but uncertain disease prediction
+        if result.get("status") == "uncertain":
+            diagnosis_en = result.get(
+                "message",
+                "⚠️ Diagnosis Uncertain\n\n"
+                "Please upload a clearer image of the affected leaf."
+            )
+
+            treatment_en = (
+                "📸 Please upload a clearer leaf image "
+                "for accurate diagnosis."
+            )
+
+            if detected_lang == "hi":
+                diagnosis = translate_to_hindi(diagnosis_en)
+                treatment = translate_to_hindi(treatment_en)
+            else:
+                diagnosis = diagnosis_en
+                treatment = treatment_en
+
+            return diagnosis, treatment
+
+        # Only successful predictions continue to RAG
         top = result["top_prediction"]
         crop, disease = parse_label(top["label"])
         confidence = top["confidence"]
 
-        print(f"Classified: {crop} - {disease} ({confidence * 100:.1f}%)")
+        print(
+            f"Classified: {crop} - {disease} "
+            f"({confidence * 100:.1f}%)"
+        )
 
         # Confidence threshold for reliable predictions
         if confidence < 0.5:
